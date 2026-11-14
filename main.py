@@ -1,3 +1,9 @@
+import os, threading
+from flask import Flask
+web = Flask(__name__)
+@web.route('/')
+def home():
+    return "Bot is Running!"
 import yfinance as yf
 from telegram import Update
 from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes
@@ -42,4 +48,8 @@ app=ApplicationBuilder().token(TOKEN).build()
 app.add_handler(CommandHandler('start',start))
 app.add_handler(CommandHandler('intraday',intraday))
 app.add_handler(CommandHandler('swing',swing))
-app.run_polling()
+def run_bot():
+    app.run_polling()
+threading.Thread(target=run_bot).start()
+port = int(os.environ.get("PORT", 5000))
+web.run(host="0.0.0.0", port=port)
