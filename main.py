@@ -46,13 +46,16 @@ async def swing(u,c):
     await u.message.reply_text(t)# ===== NIFTY + SENSEX F&O =====
 async def nifty_cmd(u,c):
     await u.message.reply_text("Wait...")
-    import yfinance as yf
-    d=yf.download("^NSEI",period="5d",interval="1d",progress=False)
-    live=float(d['Close'].iloc[-1]); ph=float(d['High'].iloc[-2]); pl=float(d['Low'].iloc[-2])
-    atm=round(live/50)*50
-    if live>ph: t=f"🔥 NIFTY INTRADAY\n{atm} CE BUY\nLive:{live:.0f} > Prev High:{ph:.0f}\nEntry: ATM | Target: +40% | SL: -25%"
-    elif live<pl: t=f"🔥 NIFTY INTRADAY\n{atm} PE BUY\nLive:{live:.0f} < Prev Low:{pl:.0f}\nEntry: ATM | Target: +40% | SL: -25%"
-    else: t=f"⏳ NIFTY - No Trade\nLive:{live:.0f}\nHigh:{ph:.0f} / Low:{pl:.0f}\nBreakout vandha dhaan Trade!"
+    try:
+        import yfinance as yf
+        d=yf.Ticker("^NSEI").history(period="5d")
+        live=float(d['Close'].iloc[-1]); ph=float(d['High'].iloc[-2]); pl=float(d['Low'].iloc[-2])
+        atm=round(live/50)*50
+        if live>ph: t=f"🔥 NIFTY INTRADAY\n{atm} CE BUY\nLive:{live:.0f} > Prev High:{ph:.0f}"
+        elif live<pl: t=f"🔥 NIFTY INTRADAY\n{atm} PE BUY\nLive:{live:.0f} < Prev Low:{pl:.0f}"
+        else: t=f"⏳ NIFTY - No Trade\nLive:{live:.0f}\nHigh:{ph:.0f} / Low:{pl:.0f}"
+    except Exception as e:
+        t=f"NIFTY error: {e}"
     await u.message.reply_text(t)
 
 async def sensex_cmd(u,c):
