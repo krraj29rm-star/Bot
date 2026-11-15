@@ -83,7 +83,24 @@ async def sensex_cmd(u,c):
     await u.message.reply_text(t)
 
 async def btst_cmd(u,c):
-    await u.message.reply_text("🌙 BTST - NIFTY + SENSEX\nIntraday signal-e BTST ku use pannu veer!\n3 PM ku aprom eduthu, naalaiku 9:30 ku exit!\n/nifty & /sensex adichu paaru!")
+await u.message.reply_text("🌙 BTST - NIFTY + SENSEX\nIntraday signal-e BTST ku use pannu veer!\n3 PM ku aprom eduthu, naalaiku 9:30 ku exit!\n/nifty & /sensex adichu paaru!")
+async def commodity(u,c):
+    await u.message.reply_text("Wait...")
+    try:
+        import yfinance as yf
+        out="🪙 COMMODITY\n\n"
+        for name,sym in [("GOLD","GC=F"),("SILVER","SI=F"),("CRUDE","CL=F"),("NAT GAS","NG=F")]:
+            d=yf.Ticker(sym).history(period="5d")
+            live=float(d['Close'].iloc[-1]); ph=float(d['High'].iloc[-2]); pl=float(d['Low'].iloc[-2])
+            if live>ph: out+=f"{name}: BUY ABOVE {ph:.1f} | Live:{live:.1f}\n\n"
+            elif live<pl: out+=f"{name}: SELL BELOW {pl:.1f} | Live:{live:.1f}\n\n"
+            else: out+=f"{name}: No Trade | Live:{live:.1f}\nHigh:{ph:.1f} / Low:{pl:.1f}\n\n"
+        t=out
+    except Exception as e:
+        t=f"COMMODITY error: {e}"
+    await u.message.reply_text(t)
+    
+
 app=ApplicationBuilder().token(TOKEN).build()
 app.add_handler(CommandHandler('start',start))
 app.add_handler(CommandHandler('nifty', nifty_cmd))
