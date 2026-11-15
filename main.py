@@ -43,9 +43,20 @@ async def swing(u,c):
             if cr:
                 t+=f"FIRE {n} Rs.{p:.2f}\nEntry {p*1.002:.2f} SL {p*0.985:.2f} TGT {p*1.04:.2f}\n\n"
     if "FIRE" not in t: t+="No breakout today"
-    await u.message.reply_text(t)
+    await u.message.reply_text(t)# ===== NIFTY + SENSEX F&O =====
+async def nifty_cmd(u,c):
+    await u.message.reply_text("NIFTY F&O check panren...")
+
+async def sensex_cmd(u,c):
+    await u.message.reply_text("SENSEX F&O check panren...")
+
+async def btst_cmd(u,c):
+    await u.message.reply_text("BTST check panren...")
 app=ApplicationBuilder().token(TOKEN).build()
 app.add_handler(CommandHandler('start',start))
+app.add_handler(CommandHandler('nifty', nifty_cmd))
+app.add_handler(CommandHandler('sensex', sensex_cmd))
+app.add_handler(CommandHandler('btst', btst_cmd))
 app.add_handler(CommandHandler('intraday',intraday))
 app.add_handler(CommandHandler('swing',swing))
 def run_web():
