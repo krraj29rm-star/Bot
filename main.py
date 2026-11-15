@@ -60,13 +60,16 @@ async def nifty_cmd(u,c):
 
 async def sensex_cmd(u,c):
     await u.message.reply_text("Wait...")
-    import yfinance as yf
-    d=yf.download("^BSESN",period="5d",interval="1d",progress=False)
-    live=float(d['Close'].iloc[-1]); ph=float(d['High'].iloc[-2]); pl=float(d['Low'].iloc[-2])
-    atm=round(live/100)*100
-    if live>ph: t=f"🔥 SENSEX INTRADAY\n{atm} CE BUY\nLive:{live:.0f} > Prev High:{ph:.0f}\nEntry: ATM | Target: +40% | SL: -25%"
-    elif live<pl: t=f"🔥 SENSEX INTRADAY\n{atm} PE BUY\nLive:{live:.0f} < Prev Low:{pl:.0f}\nEntry: ATM | Target: +40% | SL: -25%"
-    else: t=f"⏳ SENSEX - No Trade\nLive:{live:.0f}\nHigh:{ph:.0f} / Low:{pl:.0f}"
+    try:
+        import yfinance as yf
+        d=yf.Ticker("^BSESN").history(period="5d")
+        live=float(d['Close'].iloc[-1]); ph=float(d['High'].iloc[-2]); pl=float(d['Low'].iloc[-2])
+        atm=round(live/100)*100
+        if live>ph: t=f"🔥 SENSEX INTRADAY\n{atm} CE BUY\nLive:{live:.0f} > Prev High:{ph:.0f}"
+        elif live<pl: t=f"🔥 SENSEX INTRADAY\n{atm} PE BUY\nLive:{live:.0f} < Prev Low:{pl:.0f}"
+        else: t=f"⏳ SENSEX - No Trade\nLive:{live:.0f}\nHigh:{ph:.0f} / Low:{pl:.0f}"
+    except Exception as e:
+        t=f"SENSEX error: {e}"
     await u.message.reply_text(t)
 
 async def btst_cmd(u,c):
