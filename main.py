@@ -48,8 +48,9 @@ app=ApplicationBuilder().token(TOKEN).build()
 app.add_handler(CommandHandler('start',start))
 app.add_handler(CommandHandler('intraday',intraday))
 app.add_handler(CommandHandler('swing',swing))
-def run_bot():
-    app.run_polling()
-threading.Thread(target=run_bot).start()
-port = int(os.environ.get("PORT", 5000))
-web.run(host="0.0.0.0", port=port)
+def run_web():
+    port = int(os.environ.get("PORT", 5000))
+    web.run(host="0.0.0.0", port=port)
+
+threading.Thread(target=run_web, daemon=True).start()
+app.run_polling()
