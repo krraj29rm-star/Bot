@@ -24,14 +24,19 @@ def macd(sym):
 async def start(u,c): await u.message.reply_text("Vanakkam! /intraday /swing")
 async def intraday(u,c):
     await u.message.reply_text("Wait...")
-    t="INTRADAY\n\n"
-    for n,sym in S.items():
-        r=macd(sym)
-        if r:
-            p,ch,m,cr=r
-            if cr or m>0:
-                e="FIRE" if cr else "OK"
-                t+=f"{e} {n} Rs.{p:.2f} ({ch:.2f}%)\nEntry {p*1.002:.2f} SL {p*0.985:.2f} TGT {p*1.04:.2f}\n\n"
+    try:
+        import yfinance as yf
+        out="🔥 INTRADAY - NIFTY + SENSEX\n\n"
+        for name,sym,step in [("NIFTY","^NSEI",50),("SENSEX","^BSESN",100)]:
+            d=yf.Ticker(sym).history(period="5d")
+            live=float(d['Close'].iloc[-1]); ph=float(d['High'].iloc[-2]); pl=float(d['Low'].iloc[-2])
+            atm=round(live/step)*step
+            if live>ph: out+=f"{name}: {atm} CE BUY | Live:{live:.0f} > {ph:.0f}\n\n"
+            elif live<pl: out+=f"{name}: {atm} PE BUY | Live:{live:.0f} < {pl:.0f}\n\n"
+            else: out+=f"{name}: No Trade | Live:{live:.0f}\nHigh:{ph:.0f} / Low:{pl:.0f}\n\n"
+        t=out
+    except Exception as e:
+        t=f"INTRADAY error: {e}"
     await u.message.reply_text(t)
 async def swing(u,c):
     await u.message.reply_text("Wait...")
