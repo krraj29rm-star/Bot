@@ -40,15 +40,20 @@ async def intraday(u,c):
     await u.message.reply_text(t)
 async def swing(u,c):
     await u.message.reply_text("Wait...")
-    t="SWING\n\n"
-    for n,sym in S.items():
-        r=macd(sym)
-        if r:
-            p,ch,m,cr=r
-            if cr:
-                t+=f"FIRE {n} Rs.{p:.2f}\nEntry {p*1.002:.2f} SL {p*0.985:.2f} TGT {p*1.04:.2f}\n\n"
-    if "FIRE" not in t: t+="No breakout today"
-    await u.message.reply_text(t)# ===== NIFTY + SENSEX F&O =====
+    try:
+        import yfinance as yf
+        out="📈 SWING - NIFTY + SENSEX\n\n"
+        for name,sym,step in [("NIFTY","^NSEI",50),("SENSEX","^BSESN",100)]:
+            d=yf.Ticker(sym).history(period="10d")
+            live=float(d['Close'].iloc[-1]); ph=float(d['High'].iloc[-2]); pl=float(d['Low'].iloc[-2])
+            atm=round(live/step)*step
+            if live>ph: out+=f"{name}: {atm} CE BUY | BREAKOUT!\nLive:{live:.0f} > {ph:.0f}\nTarget:+200 | SL:{ph:.0f}\n\n"
+            elif live<pl: out+=f"{name}: {atm} PE BUY | BREAKDOWN!\nLive:{live:.0f} < {pl:.0f}\nTarget:-200 | SL:{pl:.0f}\n\n"
+            else: out+=f"{name}: No Breakout | Live:{live:.0f}\nHigh:{ph:.0f} / Low:{pl:.0f}\n\n"
+        t=out
+    except Exception as e:
+        t=f"SWING error: {e}"
+    await u.message.reply_text(t)
 async def nifty_cmd(u,c):
     await u.message.reply_text("Wait...")
     try:
