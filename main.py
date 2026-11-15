@@ -83,7 +83,7 @@ async def sensex_cmd(u,c):
     await u.message.reply_text(t)
 
 async def btst_cmd(u,c):
-await u.message.reply_text("🌙 BTST - NIFTY + SENSEX\nIntraday signal-e BTST ku use pannu veer!\n3 PM ku aprom eduthu, naalaiku 9:30 ku exit!\n/nifty & /sensex adichu paaru!")
+ await u.message.reply_text("🌙 BTST - NIFTY + SENSEX\nIntraday signal-e BTST ku use pannu veer!\n3 PM ku aprom eduthu, naalaiku 9:30 ku exit!\n/nifty & /sensex adichu paaru!")
 async def commodity(u,c):
     await u.message.reply_text("Wait...")
     try:
