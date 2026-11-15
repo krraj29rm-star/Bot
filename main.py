@@ -108,6 +108,8 @@ app.add_handler(CommandHandler('sensex', sensex_cmd))
 app.add_handler(CommandHandler('btst', btst_cmd))
 app.add_handler(CommandHandler('intraday',intraday))
 app.add_handler(CommandHandler('swing',swing))
+app.add_handler(CommandHandler('swing',swing))
+app.add_handler(CommandHandler("commodity", commodity))
 def run_web():
     port = int(os.environ.get("PORT", 5000))
     web.run(host="0.0.0.0", port=port)
