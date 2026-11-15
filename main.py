@@ -45,13 +45,29 @@ async def swing(u,c):
     if "FIRE" not in t: t+="No breakout today"
     await u.message.reply_text(t)# ===== NIFTY + SENSEX F&O =====
 async def nifty_cmd(u,c):
-    await u.message.reply_text("NIFTY F&O check panren...")
+    await u.message.reply_text("Wait...")
+    import yfinance as yf
+    d=yf.download("^NSEI",period="5d",interval="1d",progress=False)
+    live=float(d['Close'].iloc[-1]); ph=float(d['High'].iloc[-2]); pl=float(d['Low'].iloc[-2])
+    atm=round(live/50)*50
+    if live>ph: t=f"🔥 NIFTY INTRADAY\n{atm} CE BUY\nLive:{live:.0f} > Prev High:{ph:.0f}\nEntry: ATM | Target: +40% | SL: -25%"
+    elif live<pl: t=f"🔥 NIFTY INTRADAY\n{atm} PE BUY\nLive:{live:.0f} < Prev Low:{pl:.0f}\nEntry: ATM | Target: +40% | SL: -25%"
+    else: t=f"⏳ NIFTY - No Trade\nLive:{live:.0f}\nHigh:{ph:.0f} / Low:{pl:.0f}\nBreakout vandha dhaan Trade!"
+    await u.message.reply_text(t)
 
 async def sensex_cmd(u,c):
-    await u.message.reply_text("SENSEX F&O check panren...")
+    await u.message.reply_text("Wait...")
+    import yfinance as yf
+    d=yf.download("^BSESN",period="5d",interval="1d",progress=False)
+    live=float(d['Close'].iloc[-1]); ph=float(d['High'].iloc[-2]); pl=float(d['Low'].iloc[-2])
+    atm=round(live/100)*100
+    if live>ph: t=f"🔥 SENSEX INTRADAY\n{atm} CE BUY\nLive:{live:.0f} > Prev High:{ph:.0f}\nEntry: ATM | Target: +40% | SL: -25%"
+    elif live<pl: t=f"🔥 SENSEX INTRADAY\n{atm} PE BUY\nLive:{live:.0f} < Prev Low:{pl:.0f}\nEntry: ATM | Target: +40% | SL: -25%"
+    else: t=f"⏳ SENSEX - No Trade\nLive:{live:.0f}\nHigh:{ph:.0f} / Low:{pl:.0f}"
+    await u.message.reply_text(t)
 
 async def btst_cmd(u,c):
-    await u.message.reply_text("BTST check panren...")
+    await u.message.reply_text("🌙 BTST - NIFTY + SENSEX\nIntraday signal-e BTST ku use pannu veer!\n3 PM ku aprom eduthu, naalaiku 9:30 ku exit!\n/nifty & /sensex adichu paaru!")
 app=ApplicationBuilder().token(TOKEN).build()
 app.add_handler(CommandHandler('start',start))
 app.add_handler(CommandHandler('nifty', nifty_cmd))
