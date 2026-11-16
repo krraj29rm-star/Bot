@@ -99,7 +99,11 @@ async def commodity(u,c):
     except Exception as e:
         t=f"COMMODITY error: {e}"
     await u.message.reply_text(t)
-    
+async def stockoption(u,c):
+    await u.message.reply_text("📊 STOCK OPTION - Entry / Target / SL\n\nRELIANCE 1500 CE: BUY\nEntry: 45\n🎯 Target: 63.0\n🛑 SL: 33.8\n\nHDFC BANK 1700 CE: WAIT\nEntry: 30\n🎯 Target: 42.0\n🛑 SL: 22.5\n\nINFY 1600 PE: WAIT\nEntry: 25\n🎯 Target: 35.0\n🛑 SL: 18.8")
+
+async def option(u,c):
+    await u.message.reply_text("🔥 NIFTY 25250 CE: BUY ABOVE 148\nEntry: 148\n🎯 Target: 207.2\n🛑 SL: 111.0")    
 
 app=ApplicationBuilder().token(TOKEN).build()
 app.add_handler(CommandHandler('start',start))
@@ -109,6 +113,9 @@ app.add_handler(CommandHandler('btst', btst_cmd))
 app.add_handler(CommandHandler('intraday',intraday))
 app.add_handler(CommandHandler('swing',swing))
 app.add_handler(CommandHandler('swing',swing))
+app.add_handler(CommandHandler('stockoption', stockoption))
+app.add_handler(CommandHandler('stock', stockoption))
+app.add_handler(CommandHandler('option', option))
 app.add_handler(CommandHandler("commodity", commodity))
 def run_web():
     port = int(os.environ.get("PORT", 5000))
