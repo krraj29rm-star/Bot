@@ -1,125 +1,124 @@
-import os, threading
-from flask import Flask
-web = Flask(__name__)
-@web.route('/')
-def home():
-    return "Bot is Running!"
-import yfinance as yf
+import os, threading, asyncio
+from telegram.ext import ApplicationBuilder, CommandHandler
 from telegram import Update
-from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes
-TOKEN="9245407616:AAHIk3nl7bjFLhehLgSNQEyQ9O7Iz3l_1S0"
-S={"Kalyan":"KALYANKJIL.NS","Nazara":"NAZARA.NS"}
-def macd(sym):
+from telegram.ext import ContextTypes
+from aiohttp import web
+import yfinance as yf
+
+TOKEN = os.environ.get("TOKEN")
+
+def calc(entry):
+    return round(entry*1.4, 1), round(entry*0.75, 1)
+
+def live(sym):
     try:
-        df=yf.download(sym,period="3mo",interval="1d",progress=False)
-        c=df['Close']
-        m=c.ewm(span=12,adjust=False).mean()
-        s=c.ewm(span=26,adjust=False).mean()
-        p=float(c.iloc[-1]);q=float(c.iloc[-2])
-        ch=(p-q)/q*100
-        cr=float(m.iloc[-2])<float(s.iloc[-2]) and float(m.iloc[-1])>float(s.iloc[-1])
-        return p,ch,float(m.iloc[-1]),cr
+        d = yf.Ticker(sym).history(period="5d")
+        return float(d['Close'].iloc[-1]), float(d['High'].max()), float(d['Low'].min())
     except:
-        return None
-async def start(u,c): await u.message.reply_text("Vanakkam! /intraday /swing")
-async def intraday(u,c):
-    await u.message.reply_text("Wait...")
-    try:
-        import yfinance as yf
-        out="🔥 INTRADAY - NIFTY + SENSEX\n\n"
-        for name,sym,step in [("NIFTY","^NSEI",50),("SENSEX","^BSESN",100)]:
-            d=yf.Ticker(sym).history(period="5d")
-            live=float(d['Close'].iloc[-1]); ph=float(d['High'].iloc[-2]); pl=float(d['Low'].iloc[-2])
-            atm=round(live/step)*step
-            if live>ph: out+=f"{name}: {atm} CE BUY | Live:{live:.0f} > {ph:.0f}\n\n"
-            elif live<pl: out+=f"{name}: {atm} PE BUY | Live:{live:.0f} < {pl:.0f}\n\n"
-            else: out+=f"{name}: No Trade | Live:{live:.0f}\nHigh:{ph:.0f} / Low:{pl:.0f}\n\n"
-        t=out
-    except Exception as e:
-        t=f"INTRADAY error: {e}"
-    await u.message.reply_text(t)
-async def swing(u,c):
-    await u.message.reply_text("Wait...")
-    try:
-        import yfinance as yf
-        out="📈 SWING - NIFTY + SENSEX\n\n"
-        for name,sym,step in [("NIFTY","^NSEI",50),("SENSEX","^BSESN",100)]:
-            d=yf.Ticker(sym).history(period="10d")
-            live=float(d['Close'].iloc[-1]); ph=float(d['High'].iloc[-2]); pl=float(d['Low'].iloc[-2])
-            atm=round(live/step)*step
-            if live>ph: out+=f"{name}: {atm} CE BUY | BREAKOUT!\nLive:{live:.0f} > {ph:.0f}\nTarget:+200 | SL:{ph:.0f}\n\n"
-            elif live<pl: out+=f"{name}: {atm} PE BUY | BREAKDOWN!\nLive:{live:.0f} < {pl:.0f}\nTarget:-200 | SL:{pl:.0f}\n\n"
-            else: out+=f"{name}: No Breakout | Live:{live:.0f}\nHigh:{ph:.0f} / Low:{pl:.0f}\n\n"
-        t=out
-    except Exception as e:
-        t=f"SWING error: {e}"
-    await u.message.reply_text(t)
-async def nifty_cmd(u,c):
-    await u.message.reply_text("Wait...")
-    try:
-        import yfinance as yf
-        d=yf.Ticker("^NSEI").history(period="5d")
-        live=float(d['Close'].iloc[-1]); ph=float(d['High'].iloc[-2]); pl=float(d['Low'].iloc[-2])
-        atm=round(live/50)*50
-        if live>ph: t=f"🔥 NIFTY INTRADAY\n{atm} CE BUY\nLive:{live:.0f} > Prev High:{ph:.0f}"
-        elif live<pl: t=f"🔥 NIFTY INTRADAY\n{atm} PE BUY\nLive:{live:.0f} < Prev Low:{pl:.0f}"
-        else: t=f"⏳ NIFTY - No Trade\nLive:{live:.0f}\nHigh:{ph:.0f} / Low:{pl:.0f}"
-    except Exception as e:
-        t=f"NIFTY error: {e}"
-    await u.message.reply_text(t)
+        return 0, 0, 0
 
-async def sensex_cmd(u,c):
+def atm_strike(spot, step):
+    return int(round(spot/step)*step)
+
+async def start(u, c):
+    await u.message.reply_text("🔥 BEST BOT READY!\n\n/nifty - NIFTY LIVE\n/sensex - SENSEX LIVE\n/stockoption - BEST STOCKS LIVE ATM\n/option - NIFTY OPTION LIVE\n/commodity - GOLD SILVER CRUDE\n/intraday - INTRADAY\n/swing - SWING\n/btst - BTST")
+
+async def nifty_cmd(u, c):
+    spot, ph, pl = live("^NSEI")
+    await u.message.reply_text(f"🌞 NIFTY LIVE: {spot:.2f}\nHigh: {ph:.2f} Low: {pl:.2f}\nBuy Above: {ph:.2f} | Sell Below: {pl:.2f}")
+
+async def sensex_cmd(u, c):
+    spot, ph, pl = live("^BSESN")
+    await u.message.reply_text(f"🌞 SENSEX LIVE: {spot:.2f}\nHigh: {ph:.2f} Low: {pl:.2f}")
+
+async def intraday(u, c):
+    await u.message.reply_text("Wait... LIVE edukuren...")
+    spot, ph, pl = live("^NSEI")
+    atm = atm_strike(spot, 50)
+    await u.message.reply_text(f"📈 INTRADAY NIFTY: {spot:.2f}\nATM: {atm} CE - Buy Above {ph:.2f}\nTarget: {round(ph*1.005,1)} | SL: {round(pl,1)}")
+
+async def swing(u, c):
+    await u.message.reply_text("📈 SWING - RELIANCE / HDFC / INFY - /stockoption la paaru")
+
+async def btst_cmd(u, c):
+    spot, ph, pl = live("^NSEI")
+    await u.message.reply_text(f"🌙 BTST NIFTY: {spot:.2f}\nTomorrow Buy Above: {ph:.2f}\nSL: {pl:.2f}")
+
+async def stockoption(u, c):
+    await u.message.reply_text("Wait... LIVE edukuren...")
+    try:
+        out = "📊 BEST STOCK OPTION - LIVE ATM\n\n"
+        for name, sym, step in [("RELIANCE","RELIANCE.NS",10),("HDFC BANK","HDFCBANK.NS",10),("INFY","INFY.NS",10),("TCS","TCS.NS",10)]:
+            spot, ph, pl = live(sym)
+            atm = atm_strike(spot, step)
+            est = round(spot*0.008, 1)
+            t, s = calc(est)
+            if spot > ph*0.99:
+                sig = "BUY CE 🔥"
+            elif spot < pl*1.01:
+                sig = "BUY PE 🔥"
+            else:
+                sig = "WAIT"
+            out += f"{name} Spot: {spot:.2f}\nATM: {atm} CE - {sig}\nEntry: {est}\nTarget: {t} | SL: {s}\n\n"
+        await u.message.reply_text(out)
+    except Exception as e:
+        await u.message.reply_text(f"Error: {e}")
+
+async def option(u, c):
+    await u.message.reply_text("Wait... NIFTY LIVE edukuren...")
+    try:
+        spot, ph, pl = live("^NSEI")
+        atm = atm_strike(spot, 50)
+        est = round(spot*0.005, 1)
+        t, s = calc(est)
+        if spot > ph*0.99:
+            sig = f"BUY {atm} CE 🔥"
+        else:
+            sig = f"WAIT - {atm} CE ku mela close aana BUY"
+        await u.message.reply_text(f"🔥 NIFTY LIVE: {spot:.2f}\nATM Strike: {atm}\n{sig}\nEntry: {est}\nTarget: {t} | SL: {s}\n\nExpiry Tomorrow - 3 PM ku munnadi exit!")
+    except Exception as e:
+        await u.message.reply_text(f"Error: {e}")
+
+async def commodity(u, c):
     await u.message.reply_text("Wait...")
     try:
-        import yfinance as yf
-        d=yf.Ticker("^BSESN").history(period="5d")
-        live=float(d['Close'].iloc[-1]); ph=float(d['High'].iloc[-2]); pl=float(d['Low'].iloc[-2])
-        atm=round(live/100)*100
-        if live>ph: t=f"🔥 SENSEX INTRADAY\n{atm} CE BUY\nLive:{live:.0f} > Prev High:{ph:.0f}"
-        elif live<pl: t=f"🔥 SENSEX INTRADAY\n{atm} PE BUY\nLive:{live:.0f} < Prev Low:{pl:.0f}"
-        else: t=f"⏳ SENSEX - No Trade\nLive:{live:.0f}\nHigh:{ph:.0f} / Low:{pl:.0f}"
+        out = "🛢️ COMMODITY LIVE\n\n"
+        for name, sym in [("GOLD","GC=F"),("SILVER","SI=F"),("CRUDE","CL=F")]:
+            spot, ph, pl = live(sym)
+            if spot > ph*0.99: sig = "BUY 🔥"
+            elif spot < pl*1.01: sig = "SELL 🔥"
+            else: sig = "WAIT"
+            out += f"{name}: {spot:.2f} - {sig}\nBuy: {ph:.2f} | Sell: {pl:.2f}\n\n"
+        await u.message.reply_text(out)
     except Exception as e:
-        t=f"SENSEX error: {e}"
-    await u.message.reply_text(t)
+        await u.message.reply_text(f"Error: {e}")
 
-async def btst_cmd(u,c):
- await u.message.reply_text("🌙 BTST - NIFTY + SENSEX\nIntraday signal-e BTST ku use pannu veer!\n3 PM ku aprom eduthu, naalaiku 9:30 ku exit!\n/nifty & /sensex adichu paaru!")
-async def commodity(u,c):
-    await u.message.reply_text("Wait...")
-    try:
-        import yfinance as yf
-        out="🪙 COMMODITY\n\n"
-        for name,sym in [("GOLD","GC=F"),("SILVER","SI=F"),("CRUDE","CL=F"),("NAT GAS","NG=F")]:
-            d=yf.Ticker(sym).history(period="5d")
-            live=float(d['Close'].iloc[-1]); ph=float(d['High'].iloc[-2]); pl=float(d['Low'].iloc[-2])
-            if live>ph: out+=f"{name}: BUY ABOVE {ph:.1f} | Live:{live:.1f}\n\n"
-            elif live<pl: out+=f"{name}: SELL BELOW {pl:.1f} | Live:{live:.1f}\n\n"
-            else: out+=f"{name}: No Trade | Live:{live:.1f}\nHigh:{ph:.1f} / Low:{pl:.1f}\n\n"
-        t=out
-    except Exception as e:
-        t=f"COMMODITY error: {e}"
-    await u.message.reply_text(t)
-async def stockoption(u,c):
-    await u.message.reply_text("📊 STOCK OPTION - Entry / Target / SL\n\nRELIANCE 1500 CE: BUY\nEntry: 45\n🎯 Target: 63.0\n🛑 SL: 33.8\n\nHDFC BANK 1700 CE: WAIT\nEntry: 30\n🎯 Target: 42.0\n🛑 SL: 22.5\n\nINFY 1600 PE: WAIT\nEntry: 25\n🎯 Target: 35.0\n🛑 SL: 18.8")
-
-async def option(u,c):
-    await u.message.reply_text("🔥 NIFTY 25250 CE: BUY ABOVE 148\nEntry: 148\n🎯 Target: 207.2\n🛑 SL: 111.0")    
-
-app=ApplicationBuilder().token(TOKEN).build()
-app.add_handler(CommandHandler('start',start))
+app = ApplicationBuilder().token(TOKEN).build()
+app.add_handler(CommandHandler('start', start))
 app.add_handler(CommandHandler('nifty', nifty_cmd))
 app.add_handler(CommandHandler('sensex', sensex_cmd))
 app.add_handler(CommandHandler('btst', btst_cmd))
-app.add_handler(CommandHandler('intraday',intraday))
-app.add_handler(CommandHandler('swing',swing))
-app.add_handler(CommandHandler('swing',swing))
+app.add_handler(CommandHandler('intraday', intraday))
+app.add_handler(CommandHandler('swing', swing))
+app.add_handler(CommandHandler('option', option))
 app.add_handler(CommandHandler('stockoption', stockoption))
 app.add_handler(CommandHandler('stock', stockoption))
-app.add_handler(CommandHandler('option', option))
 app.add_handler(CommandHandler("commodity", commodity))
-def run_web():
-    port = int(os.environ.get("PORT", 5000))
-    web.run(host="0.0.0.0", port=port)
 
-threading.Thread(target=run_web, daemon=True).start()
+async def handle(request):
+    return web.Response(text="Bot Live")
+
+async def run_web():
+    port = int(os.environ.get("PORT", 5000))
+    a = web.Application()
+    a.router.add_get("/", handle)
+    runner = web.AppRunner(a)
+    await runner.setup()
+    site = web.TCPSite(runner, "0.0.0.0", port)
+    await site.start()
+
+def run_web_thread():
+    asyncio.run(run_web())
+
+threading.Thread(target=run_web_thread, daemon=True).start()
 app.run_polling()
