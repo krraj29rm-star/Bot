@@ -116,7 +116,8 @@ async def run_web():
     await runner.setup()
     site = web.TCPSite(runner, "0.0.0.0", port)
     await site.start()
-
+    
+    await asyncio.Event().wait()
 def run_web_thread():
     asyncio.run(run_web())
 
