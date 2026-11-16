@@ -5,7 +5,7 @@ from telegram.ext import ContextTypes
 from aiohttp import web
 import yfinance as yf
 
-TOKEN = os.environ.get("TOKEN")
+TOKEN = os.environ.get("9245407616:AAHIk3nl7bjFLhehLgSNQEyQ9O7Iz3l_1S0")
 
 def calc(entry):
     return round(entry*1.4, 1), round(entry*0.75, 1)
