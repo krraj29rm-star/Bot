@@ -121,4 +121,10 @@ def run_web_thread():
     asyncio.run(run_web())
 
 threading.Thread(target=run_web_thread, daemon=True).start()
-app.run_polling()
+async def _run_bot():
+    await app.initialize()
+    await app.start()
+    await app.updater.start_polling()
+    await asyncio.Event().wait()
+
+asyncio.run(_run_bot())
