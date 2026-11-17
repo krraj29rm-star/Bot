@@ -162,6 +162,6 @@ def get_fno_signal_5confirm(symbol, name, strike_step):
             conf = f"✅ Breakout\n{'✅' if c2 else '❌'} Volume {'High' if c2 else 'Low'}\n{'✅' if c3 else '❌'} RSI {rsi:.0f}\n{'✅' if c4 else '❌'} Price > VWAP\n{'✅' if c5 else '❌'} 2 Candle Confirm"
 
             if score == 5:
-                return f"🔥🔥 {name} - 5/5 CONFIRMED - BUY!\n\n{name} {atm} CE BUY\nLive: {live:.0f}\nBreakout: {prev_high:.0f}\n\n{conf}\n\nEntry: ATM Premium\nTarget: 40% Profit\nSL: 25% Loss\nLot: 75\nSTRONG SIGNAL - Edukkalam veer!"
+                return f"CONFIRMED BUY! {name} {atm} CE Live {live:.0f} Score 5/5"
             else:
-                return f"⏳ {name} - Breakout Vandhuchu, Confirm Aag
+                return "Breakout Vandhuchu, Confirm Aagala - " + name + " Score: " + str(score) + "/5"
