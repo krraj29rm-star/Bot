@@ -130,38 +130,49 @@ def supertrend_calc(df, period=10, multiplier=3):
             st[i] = st[i-1]
     return st[-1], atr.iloc[-1]
 def get_fno_signal_5confirm(symbol, name, strike_step):
-    try:
-        df = yf.download(symbol, period="2d", interval="5m", progress=False)
-        df.columns = [c[0] if isinstance(c, tuple) else c for c in df.columns]
-        df = df.dropna()
-
-        daily = yf.download(symbol, period="5d", interval="1d", progress=False)
-        daily.columns = [c[0] if isinstance(c, tuple) else c for c in daily.columns]
-        prev_high = float(daily['High'].iloc[-2])
-        prev_low = float(daily['Low'].iloc[-2])
-        live = float(df['Close'].iloc[-1])
-
-        # Unakku already irukura functions-a use pannrom
-        rsi_series = rsi_calc(df)
-        rsi = float(rsi_series.iloc[-1])
-        df['VWAP'] = (df['Close'] * df['Volume']).cumsum() / df['Volume'].cumsum()
-        vwap = float(df['VWAP'].iloc[-1])
-        avg_vol = float(df['Volume'].tail(20).mean())
-        curr_vol = float(df['Volume'].iloc[-1])
-
-        atm = round(live / strike_step) * strike_step
-
-        # ===== BULLISH - 5 CONFIRM =====
-        if live > prev_high:
-            c1 = True
-            c2 = curr_vol > avg_vol
-            c3 = rsi > 55
-            c4 = live > vwap
-            c5 = bool(df['Close'].iloc[-1] > prev_high and df['Close'].iloc[-2] > prev_high)
-            score = sum([c1, c2, c3, c4, c5])
-            conf = f"✅ Breakout\n{'✅' if c2 else '❌'} Volume {'High' if c2 else 'Low'}\n{'✅' if c3 else '❌'} RSI {rsi:.0f}\n{'✅' if c4 else '❌'} Price > VWAP\n{'✅' if c5 else '❌'} 2 Candle Confirm"
-
-            if score == 5:
-                return f"CONFIRMED BUY! {name} {atm} CE Live {live:.0f} Score 5/5"
-            else:
-                return "Breakout Vandhuchu, Confirm Aagala - " + name + " Score: " + str(score) + "/5"
+    df = yf.download(symbol, period="2d", interval="5m", progress=False)
+    df.columns = [c[0] if isinstance(c, tuple) else c for c in df.columns]
+    df = df.dropna()
+    daily = yf.download(symbol, period="5d", interval="1d", progress=False)
+    daily.columns = [c[0] if isinstance(c, tuple) else c for c in daily.columns]
+    prev_high = float(daily['High'].iloc[-2])
+    prev_low = float(daily['Low'].iloc[-2])
+    live = float(df['Close'].iloc[-1])
+    rsi = float(rsi_calc(df).iloc[-1])
+    df['VWAP'] = (df['Close'] * df['Volume']).cumsum() / df['Volume'].cumsum()
+    vwap = float(df['VWAP'].iloc[-1])
+    avg_vol = float(df['Volume'].tail(20).mean())
+    curr_vol = float(df['Volume'].iloc[-1])
+    atm = round(live / strike_step) * strike_step
+    if live > prev_high:
+        score = 0
+        if curr_vol > avg_vol:
+            score = score + 1
+        if rsi > 55:
+            score = score + 1
+        if live > vwap:
+            score = score + 1
+        if df['Close'].iloc[-1] > prev_high:
+            score = score + 1
+        if df['Close'].iloc[-2] > prev_high:
+            score = score + 1
+        if score == 5:
+            return "CONFIRMED BUY CE " + name + " " + str(atm)
+        return "Breakout Vandhuchu Score " + str(score) + "/5 Wait " + name
+    if live < prev_low:
+        score = 0
+        if curr_vol > avg_vol:
+            score = score + 1
+        if rsi < 45:
+            score = score + 1
+        if live < vwap:
+            score = score + 1
+        if df['Close'].iloc[-1] < prev_low:
+            score = score + 1
+        if df['Close'].iloc[-2] < prev_low:
+            score = score + 1
+        if score == 5:
+            return "CONFIRMED BUY PE " + name + " " + str(atm)
+        return "Breakdown Vandhuchu Score " + str(score) + "/5 Wait " + name
+    return "No Trade " + name + " Live " + str(int(live)) + " Buy Above " + str(int(prev_high))
+    
