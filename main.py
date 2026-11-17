@@ -96,7 +96,7 @@ async def commodityoption(u, c):
     await u.message.reply_text("Wait...")
     try:
         out = "🛢️ COMMODITY OPTION - LIVE ATM\n\n"
-        for name, sym, gap in [("GOLD","GC=F",100),("SILVER","SI=F",250),("CRUDE","CL=F",50)]:
+        for name, sym, gap in [("GOLD","GC=F",50),("SILVER","SI=F",1),("CRUDE","CL=F",1)]:
             spot, ph, pl = live(sym)
             atm = round(spot / gap) * gap
             side = "CE - BUY CE 🔥" if spot >= atm else "PE - BUY PE 🔥"
@@ -120,7 +120,7 @@ app.add_handler(CommandHandler('stock', stockoption))
 app.add_handler(CommandHandler("commodity", commodity))
 app.add_handler(CommandHandler("commodityoption", commodityoption))
 app.add_handler(CommandHandler("commodityoptions", commodityoption))
-
+p.add_handler(CommandHandler("niftyoption", option))
 async def handle(request):
     return web.Response(text="Bot Live")
 
