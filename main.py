@@ -108,7 +108,7 @@ async def commodityoption(u, c):
         await u.message.reply_text(out)
     except Exception as e:
         await u.message.reply_text(f"Error: {e}")
-        def rsi_calc(df, period=14):
+def rsi_calc(df, period=14):
     delta = df['Close'].diff()
     gain = delta.where(delta > 0, 0).rolling(period).mean()
     loss = -delta.where(delta < 0, 0).rolling(period).mean()
