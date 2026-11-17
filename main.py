@@ -128,81 +128,40 @@ def supertrend_calc(df, period=10, multiplier=3):
             st[i] = False
         else:
             st[i] = st[i-1]
-    return st[-1], atr.iloc[-1]
+    return st[-1], atr.iloc[
+    def get_fno_signal_5confirm(symbol, name, strike_step):
+    try:
+        df = yf.download(symbol, period="2d", interval="5m", progress=False)
+        df.columns = [c[0] if isinstance(c, tuple) else c for c in df.columns]
+        df = df.dropna()
 
-def check_breakout(symbol, name):
-    df15 = yf.download(symbol, period="5d", interval="15m", progress=False)
-    df1h = yf.download(symbol, period="5d", interval="60m", progress=False)
-    df15.columns = [c[0] if isinstance(c, tuple) else c for c in df15.columns]
-    df1h.columns = [c[0] if isinstance(c, tuple) else c for c in df1h.columns]
-    close = float(df15['Close'].iloc[-1])
-    prev_high = float(df15['High'].iloc[-20:-1].max())
-    prev_low = float(df15['Low'].iloc[-20:-1].min())
-    prev_close = float(df15['Close'].iloc[-2])
-    vwap = float(((df15['Close'] * df15['Volume']).sum() / df15['Volume'].sum()))
-    vol = float(df15['Volume'].iloc[-1])
-    avg_vol = float(df15['Volume'].iloc[-20:-1].mean())
-    vol_high = vol > avg_vol
-    r = float(rsi_calc(df15).iloc[-1])
-    st15, atr = supertrend_calc(df15)
-    st1h, _ = supertrend_calc(df1h)
-    is_buy = close > prev_high
-    is_sell = close < prev_low
-    retest_buy = prev_close > prev_high or abs(close - prev_high) / prev_high < 0.002
-    retest_sell = prev_close < prev_low or abs(close - prev_low) / prev_low < 0.002
-    score_buy = sum([is_buy, retest_buy, r > 55, st15, vol_high, close > vwap, st1h])
-    score_sell = sum([is_sell, retest_sell, r < 45, not st15, vol_high, close < vwap, not st1h])
-    if score_buy == 7:
-        return f"🟢 {name} - STRONG BUY (7/7)\nSpot: {close:.1f} | Break: {prev_high:.1f}\nRSI: {r:.0f} | ST: GREEN | VWAP: Mela | Vol: HIGH\nEntry: {close:.1f} | SL: {close-atr*1.5:.1f} | Target: {close+atr*2:.1f}\n\n"
-    if score_sell == 7:
-        return f"🔴 {name} - STRONG SELL (7/7)\nSpot: {close:.1f} | Break: {prev_low:.1f}\nRSI: {r:.0f} | ST: RED | VWAP: Keezha | Vol: HIGH\nEntry: {close:.1f} | SL: {close+atr*1.5:.1f} | Target: {close-atr*2:.1f}\n\n"
-    return f"⚠️ {name} - WAIT ({max(score_buy, score_sell)}/7)\nSpot: {close:.1f} | RSI: {r:.0f}\n\n"
+        daily = yf.download(symbol, period="5d", interval="1d", progress=False)
+        daily.columns = [c[0] if isinstance(c, tuple) else c for c in daily.columns]
+        prev_high = float(daily['High'].iloc[-2])
+        prev_low = float(daily['Low'].iloc[-2])
+        live = float(df['Close'].iloc[-1])
 
-async def breakout_all(u, c):
-    msg = "📊 BREAKOUT SCANNER (7 Confirm)\n\n"
-    SYMBOLS = {"NIFTY": "^NSEI", "BANKNIFTY": "^NSEBANK", "GOLD": "GC=F", "SILVER": "SI=F", "CRUDE": "CL=F"}
-    for name, sym in SYMBOLS.items():
-        try:
-            msg += check_breakout(sym, name)
-        except Exception as e:
-            msg += f"⚪ {name} - Data illa\n\n"
-    await u.message.reply_text(msg)
-app = ApplicationBuilder().token(TOKEN).build()
-app.add_handler(CommandHandler('start', start))
-app.add_handler(CommandHandler('nifty', nifty_cmd))
-app.add_handler(CommandHandler('sensex', sensex_cmd))
-app.add_handler(CommandHandler('btst', btst_cmd))
-app.add_handler(CommandHandler('intraday', intraday))
-app.add_handler(CommandHandler('swing', swing))
-app.add_handler(CommandHandler('option', option))
-app.add_handler(CommandHandler('stockoption', stockoption))
-app.add_handler(CommandHandler('stock', stockoption))
-app.add_handler(CommandHandler("commodity", commodity))
-app.add_handler(CommandHandler("commodityoption", commodityoption))
-app.add_handler(CommandHandler("commodityoptions", commodityoption))
-app.add_handler(CommandHandler("niftyoption", option))
-app.add_handler(CommandHandler("breakout_all", breakout_all))
-async def handle(request):
-    return web.Response(text="Bot Live")
+        # Unakku already irukura functions-a use pannrom
+        rsi_series = rsi_calc(df)
+        rsi = float(rsi_series.iloc[-1])
+        df['VWAP'] = (df['Close'] * df['Volume']).cumsum() / df['Volume'].cumsum()
+        vwap = float(df['VWAP'].iloc[-1])
+        avg_vol = float(df['Volume'].tail(20).mean())
+        curr_vol = float(df['Volume'].iloc[-1])
 
-async def run_web():
-    port = int(os.environ.get("PORT", 5000))
-    a = web.Application()
-    a.router.add_get("/", handle)
-    runner = web.AppRunner(a)
-    await runner.setup()
-    site = web.TCPSite(runner, "0.0.0.0", port)
-    await site.start()
-    
-    await asyncio.Event().wait()
-def run_web_thread():
-    asyncio.run(run_web())
+        atm = round(live / strike_step) * strike_step
 
-threading.Thread(target=run_web_thread, daemon=True).start()
-async def _run_bot():
-    await app.initialize()
-    await app.start()
-    await app.updater.start_polling()
-    await asyncio.Event().wait()
+        # ===== BULLISH - 5 CONFIRM =====
+        if live > prev_high:
+            c1 = True
+            c2 = curr_vol > avg_vol
+            c3 = rsi > 55
+            c4 = live > vwap
+            c5 = bool(df['Close'].iloc[-1] > prev_high and df['Close'].iloc[-2] > prev_high)
+            score = sum([c1, c2, c3, c4, c5])
+            conf = f"✅ Breakout\n{'✅' if c2 else '❌'} Volume {'High' if c2 else 'Low'}\n{'✅' if c3 else '❌'} RSI {rsi:.0f}\n{'✅' if c4 else '❌'} Price > VWAP\n{'✅' if c5 else '❌'} 2 Candle Confirm"
 
-asyncio.run(_run_bot())
+            if score == 5:
+                return f"🔥🔥 {name} - 5/5 CONFIRMED - BUY!\n\n{name} {atm} CE BUY\nLive: {live:.0f}\nBreakout: {prev_high:.0f}\n\n{conf}\n\nEntry: ATM Premium\nTarget: 40% Profit\nSL: 25% Loss\nLot: 75\nSTRONG SIGNAL - Edukkalam veer!"
+            else:
+                return f"⏳ {name} - Breakout Vandhuchu, Confirm Aag
