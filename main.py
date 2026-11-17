@@ -92,7 +92,21 @@ async def commodity(u, c):
         await u.message.reply_text(out)
     except Exception as e:
         await u.message.reply_text(f"Error: {e}")
-
+async def commodityoption(u, c):
+    await u.message.reply_text("Wait...")
+    try:
+        out = "🛢️ COMMODITY OPTION - LIVE ATM\n\n"
+        for name, sym, gap in [("GOLD","GC=F",100),("SILVER","SI=F",250),("CRUDE","CL=F",50)]:
+            spot, ph, pl = live(sym)
+            atm = round(spot / gap) * gap
+            side = "CE - BUY CE 🔥" if spot >= atm else "PE - BUY PE 🔥"
+            entry = round(spot * 0.004, 1)
+            target = round(entry * 1.4, 1)
+            sl = round(entry * 0.75, 1)
+            out += f"{name} Spot: {spot:.2f}\nATM: {atm} {side}\nEntry: {entry} | Target: {target} | SL: {sl}\n\n"
+        await u.message.reply_text(out)
+    except Exception as e:
+        await u.message.reply_text(f"Error: {e}")
 app = ApplicationBuilder().token(TOKEN).build()
 app.add_handler(CommandHandler('start', start))
 app.add_handler(CommandHandler('nifty', nifty_cmd))
@@ -104,6 +118,8 @@ app.add_handler(CommandHandler('option', option))
 app.add_handler(CommandHandler('stockoption', stockoption))
 app.add_handler(CommandHandler('stock', stockoption))
 app.add_handler(CommandHandler("commodity", commodity))
+app.add_handler(CommandHandler("commodityoption", commodityoption))
+app.add_handler(CommandHandler("commodityoptions", commodityoption))
 
 async def handle(request):
     return web.Response(text="Bot Live")
