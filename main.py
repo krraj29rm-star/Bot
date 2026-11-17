@@ -128,8 +128,8 @@ def supertrend_calc(df, period=10, multiplier=3):
             st[i] = False
         else:
             st[i] = st[i-1]
-    return st[-1], atr.iloc[
-    def get_fno_signal_5confirm(symbol, name, strike_step):
+    return st[-1], atr.iloc[-1]
+def get_fno_signal_5confirm(symbol, name, strike_step):
     try:
         df = yf.download(symbol, period="2d", interval="5m", progress=False)
         df.columns = [c[0] if isinstance(c, tuple) else c for c in df.columns]
