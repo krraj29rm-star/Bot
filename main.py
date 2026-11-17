@@ -4,7 +4,8 @@ from telegram import Update
 from telegram.ext import ContextTypes
 from aiohttp import web
 import yfinance as yf
-
+import pandas as pd
+import numpy as np
 TOKEN = os.environ.get("BOT_TOKEN")
 
 def calc(entry):
@@ -107,6 +108,65 @@ async def commodityoption(u, c):
         await u.message.reply_text(out)
     except Exception as e:
         await u.message.reply_text(f"Error: {e}")
+        def rsi_calc(df, period=14):
+    delta = df['Close'].diff()
+    gain = delta.where(delta > 0, 0).rolling(period).mean()
+    loss = -delta.where(delta < 0, 0).rolling(period).mean()
+    rs = gain / loss
+    return 100 - (100 / (1 + rs))
+
+def supertrend_calc(df, period=10, multiplier=3):
+    hl2 = (df['High'] + df['Low']) / 2
+    atr = (df['High'] - df['Low']).rolling(period).mean()
+    upper = hl2 + (multiplier * atr)
+    lower = hl2 - (multiplier * atr)
+    st = [True] * len(df)
+    for i in range(1, len(df)):
+        if df['Close'].iloc[i] > upper.iloc[i-1]:
+            st[i] = True
+        elif df['Close'].iloc[i] < lower.iloc[i-1]:
+            st[i] = False
+        else:
+            st[i] = st[i-1]
+    return st[-1], atr.iloc[-1]
+
+def check_breakout(symbol, name):
+    df15 = yf.download(symbol, period="5d", interval="15m", progress=False)
+    df1h = yf.download(symbol, period="5d", interval="60m", progress=False)
+    df15.columns = [c[0] if isinstance(c, tuple) else c for c in df15.columns]
+    df1h.columns = [c[0] if isinstance(c, tuple) else c for c in df1h.columns]
+    close = float(df15['Close'].iloc[-1])
+    prev_high = float(df15['High'].iloc[-20:-1].max())
+    prev_low = float(df15['Low'].iloc[-20:-1].min())
+    prev_close = float(df15['Close'].iloc[-2])
+    vwap = float(((df15['Close'] * df15['Volume']).sum() / df15['Volume'].sum()))
+    vol = float(df15['Volume'].iloc[-1])
+    avg_vol = float(df15['Volume'].iloc[-20:-1].mean())
+    vol_high = vol > avg_vol
+    r = float(rsi_calc(df15).iloc[-1])
+    st15, atr = supertrend_calc(df15)
+    st1h, _ = supertrend_calc(df1h)
+    is_buy = close > prev_high
+    is_sell = close < prev_low
+    retest_buy = prev_close > prev_high or abs(close - prev_high) / prev_high < 0.002
+    retest_sell = prev_close < prev_low or abs(close - prev_low) / prev_low < 0.002
+    score_buy = sum([is_buy, retest_buy, r > 55, st15, vol_high, close > vwap, st1h])
+    score_sell = sum([is_sell, retest_sell, r < 45, not st15, vol_high, close < vwap, not st1h])
+    if score_buy == 7:
+        return f"🟢 {name} - STRONG BUY (7/7)\nSpot: {close:.1f} | Break: {prev_high:.1f}\nRSI: {r:.0f} | ST: GREEN | VWAP: Mela | Vol: HIGH\nEntry: {close:.1f} | SL: {close-atr*1.5:.1f} | Target: {close+atr*2:.1f}\n\n"
+    if score_sell == 7:
+        return f"🔴 {name} - STRONG SELL (7/7)\nSpot: {close:.1f} | Break: {prev_low:.1f}\nRSI: {r:.0f} | ST: RED | VWAP: Keezha | Vol: HIGH\nEntry: {close:.1f} | SL: {close+atr*1.5:.1f} | Target: {close-atr*2:.1f}\n\n"
+    return f"⚠️ {name} - WAIT ({max(score_buy, score_sell)}/7)\nSpot: {close:.1f} | RSI: {r:.0f}\n\n"
+
+async def breakout_all(u, c):
+    msg = "📊 BREAKOUT SCANNER (7 Confirm)\n\n"
+    SYMBOLS = {"NIFTY": "^NSEI", "BANKNIFTY": "^NSEBANK", "GOLD": "GC=F", "SILVER": "SI=F", "CRUDE": "CL=F"}
+    for name, sym in SYMBOLS.items():
+        try:
+            msg += check_breakout(sym, name)
+        except Exception as e:
+            msg += f"⚪ {name} - Data illa\n\n"
+    await u.message.reply_text(msg)
 app = ApplicationBuilder().token(TOKEN).build()
 app.add_handler(CommandHandler('start', start))
 app.add_handler(CommandHandler('nifty', nifty_cmd))
@@ -121,6 +181,7 @@ app.add_handler(CommandHandler("commodity", commodity))
 app.add_handler(CommandHandler("commodityoption", commodityoption))
 app.add_handler(CommandHandler("commodityoptions", commodityoption))
 app.add_handler(CommandHandler("niftyoption", option))
+app.add_handler(CommandHandler("breakout_all", breakout_all))
 async def handle(request):
     return web.Response(text="Bot Live")
 
