@@ -120,7 +120,7 @@ app.add_handler(CommandHandler('stock', stockoption))
 app.add_handler(CommandHandler("commodity", commodity))
 app.add_handler(CommandHandler("commodityoption", commodityoption))
 app.add_handler(CommandHandler("commodityoptions", commodityoption))
-p.add_handler(CommandHandler("niftyoption", option))
+app.add_handler(CommandHandler("niftyoption", option))
 async def handle(request):
     return web.Response(text="Bot Live")
 
