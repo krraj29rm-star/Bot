@@ -1,11 +1,9 @@
-import os, threading, asyncio
+import os
+import asyncio
 from telegram.ext import ApplicationBuilder, CommandHandler
-from telegram import Update
-from telegram.ext import ContextTypes
 from aiohttp import web
 import yfinance as yf
-import pandas as pd
-import numpy as np
+
 TOKEN = os.environ.get("BOT_TOKEN")
 
 CONFIG = {
@@ -29,7 +27,43 @@ def live(sym):
         if d.empty:
             d = yf.Ticker(sym).history(period="1d")
         return float(d['Close'].iloc[-1]), float(d['High'].max()), float(d['Low'].min())
-    except:
+    except Exception as e:
+        print(f"Live error {sym}: {e}")
+        return 0, 0, 0
+
+def atm_strike(spot, step):
+    return round(round(spot / step) * step, 2)
+    import os
+import asyncio
+from telegram.ext import ApplicationBuilder, CommandHandler
+from aiohttp import web
+import yfinance as yf
+
+TOKEN = os.environ.get("BOT_TOKEN")
+
+CONFIG = {
+    "GOLD": {"sym": "GC=F", "step": 10, "prem": 0.004},
+    "SILVER": {"sym": "SI=F", "step": 0.5, "prem": 0.004},
+    "CRUDE": {"sym": "CL=F", "step": 1, "prem": 0.004},
+    "NATGAS": {"sym": "NG=F", "step": 0.25, "prem": 0.02},
+}
+
+def calc(entry):
+    dec = 2 if entry < 5 else 1
+    target = round(entry * 1.4, dec)
+    sl = round(entry * 0.75, dec)
+    if sl >= entry:
+        sl = round(entry * 0.70, dec)
+    return target, sl
+
+def live(sym):
+    try:
+        d = yf.Ticker(sym).history(period="1d", interval="5m")
+        if d.empty:
+            d = yf.Ticker(sym).history(period="1d")
+        return float(d['Close'].iloc[-1]), float(d['High'].max()), float(d['Low'].min())
+    except Exception as e:
+        print(f"Live error {sym}: {e}")
         return 0, 0, 0
 
 def atm_strike(spot, step):
@@ -61,7 +95,7 @@ async def intraday(u, c):
     if opt is None:
         await u.message.reply_text(f"📈 INTRADAY NIFTY: {spot:.2f}\nATM: {atm} - WAIT")
     else:
-        await u.message.reply_text(f"📈 INTRADAY NIFTY: {spot:.2f}\nATM: {atm} {opt} - {action} Above {ph:.2f}")
+        await u.message.reply_text(f"📈 INTRADAY NIFTY: {spot:.2f}\nATM: {atm} {opt} - {action}")
 
 async def swing(u, c):
     await u.message.reply_text("📈 SWING - RELIANCE / HDFC / INFY")
@@ -103,21 +137,14 @@ async def commodityoption(u, c):
         out += f"{name} Spot: {spot:.2f} | ATM {atm} {opt} - {action} {opt} 🔥\nEntry: {entry} | Target: {target} | SL: {sl}\n\n"
     await u.message.reply_text(out)
 
-async def get_5_7_signal():
-    try:
-        t = yf.Ticker("^NSEI")
-        d = t.history(period="5d")
-        spot = float(d['Close'].iloc[-1])
-        ph = float(d['High'].max())
-        pl = float(d['Low'].min())
-        return spot, ph, pl
-    except:
-        return None
-
-async def health(req):
+async def health(request):
     return web.Response(text="OK")
 
 async def main():
+    if not TOKEN:
+        print("ERROR: BOT_TOKEN not found!")
+        return
+    print("Bot starting...")
     app = ApplicationBuilder().token(TOKEN).build()
     app.add_handler(CommandHandler("start", start))
     app.add_handler(CommandHandler("nifty", nifty_cmd))
@@ -127,7 +154,19 @@ async def main():
     app.add_handler(CommandHandler("stockoption", stockoption))
     app.add_handler(CommandHandler("commodity", commodity))
     app.add_handler(CommandHandler("commodityoption", commodityoption))
-    await app.run_polling()
+    webapp = web.Application()
+    webapp.router.add_get("/", health)
+    runner = web.AppRunner(webapp)
+    await runner.setup()
+    port = int(os.environ.get("PORT", 10000))
+    site = web.TCPSite(runner, "0.0.0.0", port)
+    await site.start()
+    print(f"Web server started on {port}")
+    await app.initialize()
+    await app.start()
+    await app.updater.start_polling()
+    print("Bot polling started - LIVE")
+    await asyncio.Event().wait()
 
 if __name__ == "__main__":
     asyncio.run(main())
