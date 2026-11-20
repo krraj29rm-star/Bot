@@ -31,12 +31,12 @@ def live(sym):
     today = pd.Timestamp.now(tz="Asia/Kolkata").date()
     today_data = data[data.index.date == today]
     if today_data.empty:
-       today_data = data
-today_data = today_data[today_data.index.time >= pd.Timestamp("09:00").time()]
+        today_data = data
+    today_data = today_data[today_data.index.time >= pd.Timestamp("09:00").time()]
     spot = float(today_data['Close'].iloc[-1])
     high = float(today_data['High'].max())
     low = float(today_data['Low'].min())
-    return spot, high, low
+    return spot, high, low    
 
 def atm_strike(spot, step):
     return round(round(spot / step) * step, 2)
