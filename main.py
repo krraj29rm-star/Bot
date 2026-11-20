@@ -114,22 +114,6 @@ async def get_5_7_signal():
     except:
         return None
 
-def schedule(fn, tstr, ctx=None):
-    loop = asyncio.get_event_loop()
-    async def runner():
-        await asyncio.sleep(1)
-        await fn()
-    threading.Thread(target=lambda: loop.create_task(runner())).start()
-
-async def scheduled_5_7(ctx):
-    s = await get_5_7_signal()
-    if s:
-        spot, ph, pl = s
-        await ctx.bot.send_message(chat_id="-4821431067", text=f"📈 NIFTY 5/7: {spot:.2f} High {ph:.2f} Low {pl:.2f}")
-
-async def scheduled_messages(ctx):
-    pass
-
 async def health(req):
     return web.Response(text="OK")
 
@@ -143,7 +127,6 @@ async def main():
     app.add_handler(CommandHandler("stockoption", stockoption))
     app.add_handler(CommandHandler("commodity", commodity))
     app.add_handler(CommandHandler("commodityoption", commodityoption))
-    app.job_queue.run_daily(scheduled_5_7, time=__import__("datetime").time(9, 45))
     await app.run_polling()
 
 if __name__ == "__main__":
