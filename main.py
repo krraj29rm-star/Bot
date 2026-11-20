@@ -20,16 +20,22 @@ def calc(entry):
     if sl >= entry:
         sl = round(entry * 0.70, dec)
     return target, sl
-
 def live(sym):
-    try:
-        d = yf.Ticker(sym).history(period="1d", interval="5m")
-        if d.empty:
-            d = yf.Ticker(sym).history(period="1d")
-        return float(d['Close'].iloc[-1]), float(d['High'].max()), float(d['Low'].min())
-    except Exception as e:
-        print(f"Live error {sym}: {e}")
-        return 0, 0, 0
+    import pandas as pd
+    data = yf.download(sym, period="1d", interval="5m", progress=False)
+    if data.empty:
+        return None, None, None
+    if isinstance(data.columns, pd.MultiIndex):
+        data.columns = data.columns.get_level_values(0)
+    data.index = pd.to_datetime(data.index).tz_convert("Asia/Kolkata")
+    today = pd.Timestamp.now(tz="Asia/Kolkata").date()
+    today_data = data[data.index.date == today]
+    if today_data.empty:
+        today_data = data
+    spot = float(today_data['Close'].iloc[-1])
+    high = float(today_data['High'].max())
+    low = float(today_data['Low'].min())
+    return spot, high, low
 
 def atm_strike(spot, step):
     return round(round(spot / step) * step, 2)
